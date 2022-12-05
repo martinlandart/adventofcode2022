@@ -21,10 +21,21 @@ func Test(t *testing.T) {
 		},
 	}
 
-	got := MostCalories(input)
+	t.Run("most calories", func(t *testing.T) {
+		got := MostCalories(input)
 
-	want := uint64(24000)
-	if got != want {
-		t.Errorf("got %v, want %v", got, want)
-	}
+		want := uint64(24000)
+		if got != want {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("top three most calories", func(t *testing.T) {
+		got := TopThreeMostCalories(input)
+
+		want := uint64(24000 + 11000 + 10000)
+		if got != want {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
 }
