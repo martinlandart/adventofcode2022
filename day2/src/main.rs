@@ -6,7 +6,6 @@ fn main() {
     println!("{}", contents);
 
     let rounds: Vec<Round> = contents
-        // .split_whitespace()
         .split("\n")
         .filter(|s| s.len() > 0)
         .map(|s| Round::from_str(s).unwrap())
