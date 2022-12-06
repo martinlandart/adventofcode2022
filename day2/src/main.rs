@@ -3,8 +3,6 @@ use std::{fs, str::FromStr};
 fn main() {
     let contents = fs::read_to_string("./data").expect("failed to read file");
 
-    println!("{}", contents);
-
     let rounds: Vec<Round> = contents
         .split("\n")
         .filter(|s| s.len() > 0)
@@ -22,42 +20,34 @@ fn calculate_score(rounds: Vec<Round>) -> u32 {
         .unwrap()
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Copy)]
 enum Play {
-    A,
-    B,
-    C,
+    Rock,
+    Paper,
+    Scissors,
 }
-
-#[derive(Clone, Debug, PartialEq)]
-enum Response {
-    X,
-    Y,
-    Z,
-}
-impl Response {
+impl Play {
     fn score(&self) -> u32 {
         match self {
-            Response::X => 1,
-            Response::Y => 2,
-            Response::Z => 3,
+            Play::Rock => 1,
+            Play::Paper => 2,
+            Play::Scissors => 3,
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum RPSResult {
-    Win,
+enum Response {
     Lose,
-    Tie,
+    Draw,
+    Win,
 }
-
-impl RPSResult {
+impl Response {
     fn score(&self) -> u32 {
         match self {
-            RPSResult::Win => 6,
-            RPSResult::Tie => 3,
-            RPSResult::Lose => 0,
+            Response::Lose => 0,
+            Response::Draw => 3,
+            Response::Win => 6,
         }
     }
 }
@@ -70,37 +60,17 @@ struct Round {
 
 impl Round {
     fn calculate_score(&self) -> u32 {
-        self.result().score() + self.response.score()
-    }
+        let shape_to_play: Play = match (&self.opponent, &self.response) {
+            (x, Response::Draw) => *x,
+            (Play::Rock, Response::Win) => Play::Paper,
+            (Play::Paper, Response::Win) => Play::Scissors,
+            (Play::Scissors, Response::Win) => Play::Rock,
+            (Play::Rock, Response::Lose) => Play::Scissors,
+            (Play::Paper, Response::Lose) => Play::Rock,
+            (Play::Scissors, Response::Lose) => Play::Paper,
+        };
 
-    fn result(&self) -> RPSResult {
-        match self {
-            Round {
-                opponent: Play::A,
-                response: Response::Y,
-            }
-            | Round {
-                opponent: Play::B,
-                response: Response::Z,
-            }
-            | Round {
-                opponent: Play::C,
-                response: Response::X,
-            } => RPSResult::Win,
-            Round {
-                opponent: Play::A,
-                response: Response::X,
-            }
-            | Round {
-                opponent: Play::B,
-                response: Response::Y,
-            }
-            | Round {
-                opponent: Play::C,
-                response: Response::Z,
-            } => RPSResult::Tie,
-            _ => RPSResult::Lose,
-        }
+        self.response.score() + shape_to_play.score()
     }
 }
 
@@ -114,22 +84,21 @@ impl FromStr for Round {
         if s.chars().count() == 0 {
             println!("broken line {}", s);
             return Err(RoundParseError);
-            // return;
         }
         let mut chars = s.chars();
 
         let play = match chars.next().unwrap() {
-            'A' => Ok(Play::A),
-            'B' => Ok(Play::B),
-            'C' => Ok(Play::C),
+            'A' => Ok(Play::Rock),
+            'B' => Ok(Play::Paper),
+            'C' => Ok(Play::Scissors),
             _ => Err("unknown play"),
         };
         chars.next();
 
         let response = match chars.next().unwrap() {
-            'X' => Ok(Response::X),
-            'Y' => Ok(Response::Y),
-            'Z' => Ok(Response::Z),
+            'X' => Ok(Response::Lose),
+            'Y' => Ok(Response::Draw),
+            'Z' => Ok(Response::Win),
             _ => Err("unknown response"),
         };
 
@@ -144,57 +113,41 @@ impl FromStr for Round {
 fn rock_paper_scissorcs_test() {
     assert_eq!(
         Round {
-            opponent: Play::A,
-            response: Response::Y
+            opponent: Play::Rock,
+            response: Response::Draw
         }
-        .result(),
-        RPSResult::Win
-    );
-    assert_eq!(
-        Round {
-            opponent: Play::B,
-            response: Response::X
-        }
-        .result(),
-        RPSResult::Lose
-    );
-    assert_eq!(
-        Round {
-            opponent: Play::C,
-            response: Response::Z
-        }
-        .result(),
-        RPSResult::Tie
+        .calculate_score(),
+        4
     );
 }
 
 #[test]
 fn score_test() {
-    assert_eq!(RPSResult::Win.score(), 6);
-    assert_eq!(RPSResult::Tie.score(), 3);
-    assert_eq!(RPSResult::Lose.score(), 0);
+    assert_eq!(Response::Win.score(), 6);
+    assert_eq!(Response::Draw.score(), 3);
+    assert_eq!(Response::Lose.score(), 0);
 }
 
 #[test]
 fn calculate_score_test() {
     let input = [
         Round {
-            opponent: Play::A,
-            response: Response::Y,
+            opponent: Play::Rock,
+            response: Response::Draw,
         },
         Round {
-            opponent: Play::B,
-            response: Response::X,
+            opponent: Play::Paper,
+            response: Response::Lose,
         },
         Round {
-            opponent: Play::C,
-            response: Response::Z,
+            opponent: Play::Scissors,
+            response: Response::Win,
         },
     ];
 
     let got = calculate_score(input.to_vec());
 
-    assert_eq!(got, 15)
+    assert_eq!(got, 12)
 }
 
 #[test]
@@ -202,8 +155,8 @@ fn parse_input_test() {
     assert_eq!(
         Round::from_str("C X").unwrap(),
         Round {
-            opponent: Play::C,
-            response: Response::X
+            opponent: Play::Scissors,
+            response: Response::Lose
         }
     )
 }
