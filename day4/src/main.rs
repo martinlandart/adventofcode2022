@@ -11,7 +11,8 @@ fn main() {
     println!(
         "fully contained pairs {}",
         count_fully_contained_pairs(&pairs)
-    )
+    );
+    println!("overlapping pairs {}", count_overlapping(&pairs));
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -20,6 +21,10 @@ struct Pair(Range, Range);
 impl Pair {
     fn fully_contains(&self) -> bool {
         self.0.contains(&self.1) || self.1.contains(&self.0)
+    }
+
+    fn overlaps(&self) -> bool {
+        self.0.overlaps(&self.1)
     }
 }
 
@@ -52,10 +57,36 @@ impl Range {
     fn contains(&self, range: &Range) -> bool {
         self.0 <= range.0 && self.1 >= range.1
     }
+
+    fn overlaps(&self, range: &Range) -> bool {
+        fn boundaries_contained(a: &Range, b: &Range) -> bool {
+            (a.0 >= b.0 && a.1 <= b.1) || (a.1 >= b.0 && a.1 <= b.1)
+        }
+
+        boundaries_contained(self, range) || boundaries_contained(range, self)
+    }
+}
+
+fn count_overlapping(pairs: &Vec<Pair>) -> usize {
+    pairs.iter().filter(|p| p.overlaps()).count()
 }
 
 fn count_fully_contained_pairs(pairs: &Vec<Pair>) -> usize {
     pairs.iter().filter(|p| p.fully_contains()).count()
+}
+
+#[test]
+fn overlaps_test() {
+    let input = vec![
+        Pair(Range(2, 4), Range(6, 8)),
+        Pair(Range(2, 3), Range(4, 5)),
+        Pair(Range(5, 7), Range(7, 9)),
+        Pair(Range(2, 8), Range(3, 7)),
+        Pair(Range(6, 6), Range(4, 6)),
+        Pair(Range(2, 6), Range(4, 8)),
+    ];
+
+    assert_eq!(4, count_overlapping(&input))
 }
 
 #[test]
