@@ -27,37 +27,56 @@ fn main() {
 
     let contents = fs::read_to_string("./data").expect("failed to read file");
 
-    contents
+    let movements: Vec<(usize, usize, usize)> = contents
         .split("\n")
         .skip(10)
         .filter(|s| s.len() > 0)
         .map(|row| parse_movements(row))
-        .for_each(|movement| cargo.move_cargo(movement.0, movement.1, movement.2));
+        .collect();
 
+    let mut cargo_copy = cargo.clone();
+    movements
+        .iter()
+        .for_each(|movement| cargo.move_cargo_9000(movement.0, movement.1, movement.2));
     println!(
-        "top crates {}",
+        "top crates 9000 {}",
         cargo.top_crates().iter().collect::<String>()
+    );
+
+    movements
+        .iter()
+        .for_each(|movement| cargo_copy.move_cargo_9001(movement.0, movement.1, movement.2));
+    println!(
+        "top crates 9001 {}",
+        cargo_copy.top_crates().iter().collect::<String>()
     )
 }
 
+#[derive(Clone, Debug)]
 struct Cargo<T> {
     stacks: Vec<Stack<T>>,
 }
 
 impl<T: Copy> Cargo<T> {
-    fn move_cargo(&mut self, number: usize, from: usize, to: usize) {
+    fn move_cargo_9000(&mut self, number: usize, from: usize, to: usize) {
         let n = number;
         let popped: Vec<T> = (0..n).map(|_| self.stacks[from - 1].pop()).collect();
 
-        println!("popped length {}", popped.len());
         (0..n).for_each(|i| self.stacks[to - 1].push(popped[i]));
     }
 
+    fn move_cargo_9001(&mut self, number: usize, from: usize, to: usize) {
+        let n = number;
+        let popped: Vec<T> = (0..n).map(|_| self.stacks[from - 1].pop()).collect();
+
+        (0..n).for_each(|i| self.stacks[to - 1].push(popped[n - i - 1]));
+    }
     fn top_crates(&mut self) -> Vec<T> {
         self.stacks.iter().map(|stack| stack.peek()).collect()
     }
 }
 
+#[derive(Clone, Debug)]
 struct Stack<T> {
     items: Vec<T>,
 }
@@ -79,7 +98,7 @@ impl<T: Copy> Stack<T> {
 }
 
 #[test]
-fn move_cargo_test() {
+fn move_cargo_9000_test() {
     let mut cargo = Cargo {
         stacks: vec![
             Stack {
@@ -92,16 +111,42 @@ fn move_cargo_test() {
         ],
     };
 
-    cargo.move_cargo(1, 2, 1);
-    cargo.move_cargo(3, 1, 3);
-    cargo.move_cargo(2, 2, 1);
-    cargo.move_cargo(1, 1, 2);
+    cargo.move_cargo_9000(1, 2, 1);
+    cargo.move_cargo_9000(3, 1, 3);
+    cargo.move_cargo_9000(2, 2, 1);
+    cargo.move_cargo_9000(1, 1, 2);
 
     let got = cargo.top_crates();
     assert_eq!(got.len(), 3);
 
     let message: String = got.iter().collect();
     assert_eq!(message, "CMZ")
+}
+
+#[test]
+fn move_cargo_9001_test() {
+    let mut cargo = Cargo {
+        stacks: vec![
+            Stack {
+                items: vec!['Z', 'N'],
+            },
+            Stack {
+                items: vec!['M', 'C', 'D'],
+            },
+            Stack { items: vec!['P'] },
+        ],
+    };
+
+    cargo.move_cargo_9001(1, 2, 1);
+    cargo.move_cargo_9001(3, 1, 3);
+    cargo.move_cargo_9001(2, 2, 1);
+    cargo.move_cargo_9001(1, 1, 2);
+
+    let got = cargo.top_crates();
+    assert_eq!(got.len(), 3);
+
+    let message: String = got.iter().collect();
+    assert_eq!(message, "MCD")
 }
 
 #[cfg(test)]
