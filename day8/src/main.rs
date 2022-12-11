@@ -1,7 +1,12 @@
-use std::{num::ParseIntError, str::FromStr};
+use std::{fs, num::ParseIntError, str::FromStr};
 
 fn main() {
-    println!("Hello, world!");
+    let contents = fs::read_to_string("./data").expect("failed to read file");
+
+    println!(
+        "visible trees {}",
+        TreeGrid::from_str(&contents).unwrap().count_visible_trees()
+    )
 }
 
 type Grid = Vec<Vec<u32>>;
@@ -12,20 +17,21 @@ struct TreeGrid {
 
 impl TreeGrid {
     fn count_visible_trees(&self) -> usize {
-        // 'outer: for x in 0..grid.len() - 1 {
-        //     'inner: for y in 0..grid[0].len() - 1 {
-        //         // is_visible(x, y)
-        //
-        //         // if x == y {
-        //         //     break 'outer;
-        //         // }
-        //     }
-        // }
-
-        self.trees.len() * 2 + self.trees[0].len() * 2 - 4
+        let mut visible_counter = 0;
+        for row in 0..self.trees.len() {
+            for col in 0..self.trees[0].len() {
+                if self.tree_is_visible(row, col) {
+                    visible_counter += 1;
+                }
+            }
+        }
+        visible_counter
     }
 
     fn tree_is_visible(&self, row: usize, col: usize) -> bool {
+        if row == 0 || col == 0 {
+            return true;
+        }
         fn visible_from_left(grid: &Grid, row: usize, col: usize) -> bool {
             for i in (0..col).rev() {
                 if grid[row][col] <= grid[row][i] {
@@ -75,7 +81,7 @@ impl FromStr for TreeGrid {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(TreeGrid {
             trees: s
-                .split("\n")
+                .split_terminator("\n")
                 .map(|row| {
                     row.chars().fold(vec![], |mut a, c| {
                         a.push(c.to_digit(10).unwrap());
@@ -94,11 +100,12 @@ fn count_outside_trees() {
 25512
 65332
 33549
-35390",
+35390
+",
     )
     .unwrap();
 
-    assert_eq!(input.count_visible_trees(), 16);
+    assert_eq!(input.count_visible_trees(), 21);
 }
 
 #[test]
