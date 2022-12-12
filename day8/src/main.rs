@@ -2,11 +2,10 @@ use std::{fs, num::ParseIntError, str::FromStr};
 
 fn main() {
     let contents = fs::read_to_string("./data").expect("failed to read file");
+    let tree_grid = TreeGrid::from_str(&contents).unwrap();
+    println!("visible trees {}", tree_grid.count_visible_trees());
 
-    println!(
-        "visible trees {}",
-        TreeGrid::from_str(&contents).unwrap().count_visible_trees()
-    )
+    println!("max scenic score {}", tree_grid.max_scenic_score());
 }
 
 type Grid = Vec<Vec<u32>>;
@@ -16,6 +15,83 @@ struct TreeGrid {
 }
 
 impl TreeGrid {
+    fn max_scenic_score(&self) -> usize {
+        let mut max_score = 0;
+        for row in 1..self.trees.len() {
+            for col in 1..self.trees[0].len() {
+                let score = self.tree_scenic_score(row, col);
+
+                if score > max_score {
+                    max_score = score;
+                }
+            }
+        }
+        max_score
+    }
+    fn tree_scenic_score(&self, row: usize, col: usize) -> usize {
+        fn top_score(grid: &Grid, row: usize, col: usize) -> usize {
+            let mut counter = 0;
+            let cur_height = grid[row][col];
+            for r in (0..row).rev() {
+                counter += 1;
+
+                if cur_height <= grid[r][col] {
+                    break;
+                }
+            }
+
+            counter
+        }
+
+        fn bottom_score(grid: &Grid, row: usize, col: usize) -> usize {
+            let mut counter = 0;
+            let cur_height = grid[row][col];
+            for r in row + 1..grid.len() {
+                counter += 1;
+
+                // println!("comparing height {} to {}", cur_height, grid[r][col]);
+                if cur_height <= grid[r][col] {
+                    break;
+                }
+            }
+
+            counter
+        }
+
+        fn left_score(grid: &Grid, row: usize, col: usize) -> usize {
+            let mut counter = 0;
+            let cur_height = grid[row][col];
+            for c in (0..col).rev() {
+                counter += 1;
+
+                // println!("comparing left height {} to {}", cur_height, grid[r][col]);
+                if cur_height <= grid[row][c] {
+                    break;
+                }
+            }
+
+            counter
+        }
+
+        fn right_score(grid: &Grid, row: usize, col: usize) -> usize {
+            let mut counter = 0;
+            let cur_height = grid[row][col];
+            for c in col + 1..grid.len() {
+                counter += 1;
+
+                if cur_height <= grid[row][c] {
+                    break;
+                }
+            }
+
+            counter
+        }
+
+        top_score(&self.trees, row, col)
+            * bottom_score(&self.trees, row, col)
+            * left_score(&self.trees, row, col)
+            * right_score(&self.trees, row, col)
+    }
     fn count_visible_trees(&self) -> usize {
         let mut visible_counter = 0;
         for row in 0..self.trees.len() {
@@ -91,6 +167,24 @@ impl FromStr for TreeGrid {
                 .collect(),
         })
     }
+}
+
+#[test]
+fn scenic_score_test() {
+    let input = TreeGrid::from_str(
+        "30373
+25512
+65332
+33549
+35390
+",
+    )
+    .unwrap();
+
+    assert_eq!(input.tree_scenic_score(1, 2), 4);
+    assert_eq!(input.tree_scenic_score(3, 2), 8);
+
+    assert_eq!(input.max_scenic_score(), 8);
 }
 
 #[test]
